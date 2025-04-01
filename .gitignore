@@ -1,0 +1,14 @@
+.idea
+.vscode
+.run
+**/.ipynb_checkpoints
+**/slurm-*.out
+**/*.egg-info
+**/__pycache__
+venv
+data
+scratch
+logs
+runs
+pkg_cache
+build

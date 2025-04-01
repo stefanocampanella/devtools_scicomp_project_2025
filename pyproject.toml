@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "devtools_scicomp_project_2025"
+version = "0.1"
+dependencies = ["chex",
+                "dm-haiku",
+                "flax",
+                "jax",
+                "matplotlib",
+                "numpy",
+                "torch",
+                "torchvision"]
+requires-python = ">=3.11"
+authors = [{name = "Stefano Campanella"}]
+description = 'Assignment for the course "Development Tools for Scientific Computing 2024/5" held at SISSA'
+readme = {file = "README.md", content-type = "text/markdown"}
+license = "MIT"
+
+[project.optional-dependencies]
+interactive = ["jupyterlab", "ipywidgets"]
+profile = ["tensorboard_plugin_profile"]
+train = ["optax", "tensorboard"]
+test = ["pytest"]
+
+
+[project.urls]
+Homepage = "https://github.com/stefanocampanella/devtools_scicomp_project_2025"
+
+[tool.setuptools]
+packages = ["causal-conv-arm"]
