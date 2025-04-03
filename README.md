@@ -1,5 +1,7 @@
 # Efficient Causal Convolutions for Time-Series Forecasting
 
+[![codecov](https://codecov.io/gh/stefanocampanella/devtools_scicomp_project_2025/graph/badge.svg?token=VOWYD2SB14)](https://codecov.io/gh/stefanocampanella/devtools_scicomp_project_2025)
+
 In this project, an autoregressive model (ARM) using causal convolutions has been implemented. The purpose is to 
 showcase the usage of software engineering practices (e.g. unit tests), development tools (e.g. git), and array 
 computation libraries commonly used in deep-learning (e.g. JAX).

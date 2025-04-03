@@ -9,10 +9,7 @@ dependencies = ["chex",
                 "dm-haiku",
                 "flax",
                 "jax",
-                "matplotlib",
-                "numpy",
-                "torch",
-                "torchvision"]
+                "numpy"]
 requires-python = ">=3.11"
 authors = [{name = "Stefano Campanella"}]
 description = 'Assignment for the course "Development Tools for Scientific Computing 2024/5" held at SISSA'
@@ -20,14 +17,14 @@ readme = {file = "README.md", content-type = "text/markdown"}
 license = "MIT"
 
 [project.optional-dependencies]
-interactive = ["jupyterlab", "ipywidgets"]
+interactive = ["jupyterlab", "ipywidgets", "matplotlib"]
 profile = ["tensorboard_plugin_profile"]
-train = ["optax", "tensorboard"]
-test = ["pytest"]
+train = ["torch", "torchvision", "optax", "tensorboard"]
+test = ["pytest", "pytest-cov"]
 
 
 [project.urls]
 Homepage = "https://github.com/stefanocampanella/devtools_scicomp_project_2025"
 
 [tool.setuptools]
-packages = ["causal-conv-arm"]
+packages = ["causal_conv_arm"]
