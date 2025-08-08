@@ -50,12 +50,12 @@ def num_elements(request):
 
 
 @pytest.fixture(scope="module", params=[1, 4])
-def dilation(request):
+def dilation_rate(request):
   return request.param
 
 
 @pytest.fixture(scope="module", params=[True, False])
-def depend_on_current_token(request):
+def depends_on_current_token(request):
   return request.param
 
 
@@ -64,16 +64,15 @@ def key(seed):
   return jax.random.key(seed)
 
 
-def get_conv(input_channels, output_channels, kernel_size, dilation, depend_on_current_token, **kwargs):
+def get_conv(output_channels, kernel_size, dilation_rate, depend_on_current_token, **kwargs):
   @hk.without_apply_rng
   @hk.transform
   def _conv(xs):
-    conv_layer = conv.CausalConv(input_channels,
-                                   output_channels,
-                                   kernel_size,
-                                   dilation=dilation,
-                                   A=depend_on_current_token,
-                                   **kwargs)
+    conv_layer = conv.CausalConvLayer(output_channels=output_channels,
+                                      kernel_size=kernel_size,
+                                      dilation_rate=dilation_rate,
+                                      depends_on_current_token=depend_on_current_token,
+                                      **kwargs)
     return conv_layer(xs)
 
   return _conv
@@ -85,18 +84,17 @@ def test_shape(key,
                input_channels,
                output_channels,
                kernel_size,
-               dilation,
-               depend_on_current_token):
-  A = depend_on_current_token
+               dilation_rate,
+               depends_on_current_token):
   inputs = jnp.empty((batch_size, input_channels, num_elements))
   inputs_unbatched = jnp.empty((input_channels, num_elements))
-  conv_fn = get_conv(input_channels, output_channels, kernel_size, dilation, A)
+  conv_fn = get_conv(output_channels, kernel_size, dilation_rate, depends_on_current_token)
   params = conv_fn.init(key, inputs)
   outputs = conv_fn.apply(params, inputs)
   outputs_unbatched = conv_fn.apply(params, inputs_unbatched)
 
-  assert outputs_unbatched.shape == (output_channels, num_elements - A)
-  assert outputs.shape == (batch_size, output_channels, num_elements - A)
+  assert outputs_unbatched.shape == (output_channels, num_elements)
+  assert outputs.shape == (batch_size, output_channels, num_elements)
 
 
 def test_ndim(key,
@@ -105,13 +103,12 @@ def test_ndim(key,
               input_channels,
               output_channels,
               kernel_size,
-              dilation,
-              depend_on_current_token):
-  A = depend_on_current_token
+              dilation_rate,
+              depends_on_current_token):
   inputs = jnp.empty((batch_size, input_channels, num_elements))
   inputs_londims = jnp.empty((1,))
   inputs_hindims = jnp.empty((1, 1, 1, 1))
-  conv = get_conv(input_channels, output_channels, kernel_size, dilation, A)
+  conv = get_conv(output_channels, kernel_size, dilation_rate, depends_on_current_token)
   params = conv.init(key, inputs)
 
   with pytest.raises(ValueError):
@@ -128,9 +125,9 @@ def test_edge_kernel(key,
   output_channels = 1
   kernel_size = 2
   dilation = 1
-  A = False
+  depends_on_current_token = False
   inputs = jax.random.uniform(key, (batch_size, input_channels, num_elements))
-  conv = get_conv(input_channels, output_channels, kernel_size, dilation, A, name="cconv")
+  conv = get_conv(output_channels, kernel_size, dilation, depends_on_current_token, name="cconv")
   params = {'cconv': {'w': jnp.tile(jnp.array([-1.0, 1.0]), (output_channels, input_channels, 1))}}
   outputs = conv.apply(params, inputs)
   expected_outputs = jnp.diff(jnp.pad(inputs, ((0, 0), (0, 0), (1, 0))), axis=-1)

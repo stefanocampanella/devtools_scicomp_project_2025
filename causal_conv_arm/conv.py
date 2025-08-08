@@ -13,40 +13,43 @@
 # COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
 # OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 """Model utilities"""
+from typing import Sequence, Callable, Any, Dict
 
 import haiku as hk
 import chex
 import jax
 
 
-# Using haiku.Conv1D and haiku.pad one can do fancier stuff, like handling automatically the number of channels  and
+# Using haiku.Conv1D and haiku.pad one can do fancier stuff, like handling automatically the number of channels and
 # proper padding. However, here we'll keep it simple.
-class CausalConv(hk.Module):
+class CausalConvLayer(hk.Module):
   """Causal, one-dimensional convolution."""
 
-  def __init__(self, in_channels: int,
-               out_channels: int,
+  def __init__(self,
+               output_channels: int,
                kernel_size: int,
-               dilation:int, A=False,
+               dilation_rate:int,
+               depends_on_current_token=False,
+               activation_fn: Callable | None = None,
                w_init:hk.initializers.Initializer | None = None,
                **kwargs):
     """Initialize the module
 
     Args:
       in_channels: number of input channels/features
-      out_channels: number of output channels/features
+      output_channels: number of output channels/features
       kernel_size: kernel size
-      dilation: dilation rate
-      A: dependency on current token.
+      dilation_rate: dilation rate
+      depends_on_current_token: dependency on current token.
     """
     super().__init__(**kwargs)
 
-    self.in_channels = in_channels
-    self.out_channels = out_channels
+    self.output_channels = output_channels
     self.kernel_size = kernel_size
-    self.dilation = dilation
+    self.dilation_rate = dilation_rate
+    self.depends_on_current_token = depends_on_current_token
+    self.activation_fn = activation_fn
     self.w_init = w_init or hk.initializers.RandomNormal()
-    self.A = A
 
   def __call__(self, inputs: chex.Array, **kwargs) -> chex.Array:
     """Connects ``CausalConv1D`` layer.
@@ -68,15 +71,15 @@ class CausalConv(hk.Module):
     else:
       raise ValueError('inputs must have shape (C, W) or (N, C, W)')
 
+    input_channels = inputs.shape[-2]
     kernel = hk.get_parameter("w",
-                              shape=(self.out_channels, self.in_channels, self.kernel_size),
+                              shape=(self.output_channels, input_channels, self.kernel_size),
                               init=self.w_init)
-    inputs = jax.lax.pad(inputs,
-                         padding_value=0.,
-                         padding_config=[(0, 0, 0), (0, 0, 0), ((self.kernel_size - 1) * self.dilation, 0, 0)])
+    padding = (self.kernel_size - 1) * self.dilation_rate + self.depends_on_current_token * 1
+    inputs = jax.lax.pad(inputs, padding_value=0., padding_config=[(0, 0, 0), (0, 0, 0), (padding, 0, 0)])
     outputs = jax.lax.conv_general_dilated(inputs,
                                            kernel,
-                                           rhs_dilation=(self.dilation,),
+                                           rhs_dilation=(self.dilation_rate,),
                                            window_strides=(1,),
                                            padding=[(0, 0)],
                                            **kwargs)
@@ -84,7 +87,25 @@ class CausalConv(hk.Module):
     if unbatched:
       outputs = jax.lax.squeeze(outputs, (0,))
 
-    if self.A:
+    if self.depends_on_current_token:
       outputs = outputs[..., :-1]
 
+    if self.activation_fn is not None:
+      outputs = self.activation_fn(outputs)
+
     return outputs
+
+
+class CausalConvNet(hk.Module):
+
+  def __init__(self, layers_specs: Sequence[Dict[str, Any]]):
+    super().__init__()
+    self.layers = [CausalConvLayer(**specs,
+                                   depends_on_current_token=(n == 0),
+                                   activation_fn=(jax.nn.swish if n < len(layers_specs) - 1 else (lambda x: x)))
+                   for (n, specs) in enumerate(layers_specs)]
+    self.net = hk.Sequential(self.layers)
+
+  def __call__(self, x: chex.Array):
+
+    return self.net(x)
