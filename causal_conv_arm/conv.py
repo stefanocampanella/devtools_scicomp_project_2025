@@ -12,17 +12,16 @@
 # WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
 # COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
 # OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-"""Model utilities"""
-from typing import Sequence, Callable, Any, Dict
+"""Causal convolution layer."""
 
-import haiku as hk
 import chex
+import haiku as hk
 import jax
 
 
 # Using haiku.Conv1D and haiku.pad one can do fancier stuff, like handling automatically the number of channels and
 # proper padding. However, here we'll keep it simple.
-class CausalConvLayer(hk.Module):
+class CausalConv(hk.Module):
   """Causal, one-dimensional convolution."""
 
   def __init__(self,
@@ -30,7 +29,6 @@ class CausalConvLayer(hk.Module):
                kernel_size: int,
                dilation_rate:int,
                depends_on_current_token=False,
-               activation_fn: Callable | None = None,
                w_init:hk.initializers.Initializer | None = None,
                **kwargs):
     """Initialize the module
@@ -48,7 +46,6 @@ class CausalConvLayer(hk.Module):
     self.kernel_size = kernel_size
     self.dilation_rate = dilation_rate
     self.depends_on_current_token = depends_on_current_token
-    self.activation_fn = activation_fn
     self.w_init = w_init or hk.initializers.RandomNormal()
 
   def __call__(self, inputs: chex.Array, **kwargs) -> chex.Array:
@@ -90,22 +87,4 @@ class CausalConvLayer(hk.Module):
     if self.depends_on_current_token:
       outputs = outputs[..., :-1]
 
-    if self.activation_fn is not None:
-      outputs = self.activation_fn(outputs)
-
     return outputs
-
-
-class CausalConvNet(hk.Module):
-
-  def __init__(self, layers_specs: Sequence[Dict[str, Any]]):
-    super().__init__()
-    self.layers = [CausalConvLayer(**specs,
-                                   depends_on_current_token=(n == 0),
-                                   activation_fn=(jax.nn.swish if n < len(layers_specs) - 1 else (lambda x: x)))
-                   for (n, specs) in enumerate(layers_specs)]
-    self.net = hk.Sequential(self.layers)
-
-  def __call__(self, x: chex.Array):
-
-    return self.net(x)

@@ -68,11 +68,11 @@ def get_conv(output_channels, kernel_size, dilation_rate, depend_on_current_toke
   @hk.without_apply_rng
   @hk.transform
   def _conv(xs):
-    conv_layer = conv.CausalConvLayer(output_channels=output_channels,
-                                      kernel_size=kernel_size,
-                                      dilation_rate=dilation_rate,
-                                      depends_on_current_token=depend_on_current_token,
-                                      **kwargs)
+    conv_layer = conv.CausalConv(output_channels=output_channels,
+                                 kernel_size=kernel_size,
+                                 dilation_rate=dilation_rate,
+                                 depends_on_current_token=depend_on_current_token,
+                                 **kwargs)
     return conv_layer(xs)
 
   return _conv
