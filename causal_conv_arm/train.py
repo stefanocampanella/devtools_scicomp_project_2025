@@ -110,7 +110,6 @@ def main(config_path: pathlib.Path,
   ckpt_path = ckpt_path.resolve()
   ckpt_path = ocp.test_utils.erase_and_create_empty(ckpt_path)
 
-  # Check how to save only best model
   ckpt_mngr_options = ocp.CheckpointManagerOptions(max_to_keep=3, best_fn=lambda metrics: -1 * metrics['validation_nll'])
   ckpt_mngr = ocp.CheckpointManager(ckpt_path, options=ckpt_mngr_options)
 
