@@ -3,11 +3,10 @@
 #SBATCH --partition=boost_usr_prod
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
-#SBATCH --time=120
+#SBATCH --time=240
 #SBATCH --gres=gpu:1
 #SBATCH --job-name=ARM-TRAIN
 #SBATCH --output=logs/%x-%j.out
-#SBATCH --error=logs/%x-%j.err
 #SBATCH --requeue
 # Slurm submission script for training the ARM model on Leonardo.
 #
@@ -24,10 +23,6 @@ source leonardo/environment/activate
 export JAX_PLATFORMS=cuda,cpu
 export JAX_TRACEBACK_FILTERING=off
 export JAX_TRACEBACK_IN_LOCATIONS_LIMIT=-1
-export XLA_FLAGS="--xla_gpu_enable_triton_softmax_fusion=true \
-                  --xla_gpu_triton_gemm_any=True \
-                  --xla_gpu_enable_async_collectives=true \
-                  --xla_gpu_enable_latency_hiding_scheduler=true \
-                  --xla_gpu_enable_highest_priority_async_stream=true"
+export XLA_FLAGS="--xla_gpu_triton_gemm_any=True --xla_gpu_enable_latency_hiding_scheduler=true"
 
-python -m causal_conv_arm.train "${ROOT}/configs/train.toml" "${ROOT}/data" --jit --no-download --log-level=info
+python -m causal_conv_arm.train "${ROOT}/configs/train.toml" "${ROOT}/data" --jit --no-progress --no-download --log-level=info

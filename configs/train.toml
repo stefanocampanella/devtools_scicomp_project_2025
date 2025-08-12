@@ -1,6 +1,6 @@
 seed = 42
-epochs = 100
-patience = 20
+epochs = 32
+patience = 8
 n_elements = 784
 generation_batch_size = 16
 

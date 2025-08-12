@@ -21,7 +21,7 @@ license = "MIT"
 train = "causal_conv_arm.train:main"
 
 [project.optional-dependencies]
-interactive = ["jupyterlab", "ipywidgets", "matplotlib"]
+interactive = ["jupyterlab", "ipywidgets", "matplotlib", "dm-tree", "graphviz"]
 profile = ["tensorboard_plugin_profile"]
 train = ["torch", "torchvision", "optax", "orbax-checkpoint", "tensorboard", "click", "tqdm", "matplotlib"]
 test = ["pytest", "pytest-cov"]
