@@ -43,6 +43,7 @@ from causal_conv_arm.utils import SequentialMNIST, plot_grid
                 type=click.Path(path_type=pathlib.Path, dir_okay=True, readable=True))
 @click.option('--jit/--no-jit', default=False, is_flag=True)
 @click.option('--download/--no-download', default=False, is_flag=True)
+@click.option('--progress/--no-progress', default=True, is_flag=True)
 @click.option('--log-level',
               default='info',
               type=click.Choice(['debug', 'info', 'warning', 'error', 'critical'], case_sensitive=False))
@@ -50,6 +51,7 @@ def main(config_path: pathlib.Path,
          data_path: pathlib.Path,
          jit: bool = True,
          download: bool = False,
+         progress: bool = True,
          log_level: str = 'info'):
 
   logging.basicConfig(stream=sys.stdout,
@@ -142,7 +144,7 @@ def main(config_path: pathlib.Path,
       logging.info(f"Patience {patience} reached, stopping training")
       break
 
-    for xs in tqdm(train_dl):
+    for xs in tqdm(train_dl, disable=not progress):
       value, grads = grads_fn(params, xs)
       updates, opt_state = optimizer.update(grads, opt_state)
       params = optax.apply_updates(params, updates)
