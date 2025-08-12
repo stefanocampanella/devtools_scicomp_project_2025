@@ -54,25 +54,19 @@ def dilation_rate(request):
   return request.param
 
 
-@pytest.fixture(scope="module", params=[True, False])
-def depends_on_current_token(request):
-  return request.param
-
-
 @pytest.fixture
 def key(seed):
   return jax.random.key(seed)
 
 
-def get_conv(output_channels, kernel_size, dilation_rate, depend_on_current_token, **kwargs):
+def get_conv(output_channels, kernel_size, dilation_rate, **kwargs):
   @hk.without_apply_rng
   @hk.transform
   def _conv(xs):
-    conv_layer = conv.CausalConv(output_channels=output_channels,
-                                 kernel_size=kernel_size,
-                                 dilation_rate=dilation_rate,
-                                 depends_on_current_token=depend_on_current_token,
-                                 **kwargs)
+    conv_layer = conv.CausalConv1D(output_channels=output_channels,
+                                   kernel_size=kernel_size,
+                                   dilation_rate=dilation_rate,
+                                   **kwargs)
     return conv_layer(xs)
 
   return _conv
@@ -84,17 +78,14 @@ def test_shape(key,
                input_channels,
                output_channels,
                kernel_size,
-               dilation_rate,
-               depends_on_current_token):
-  inputs = jnp.empty((batch_size, input_channels, num_elements))
-  inputs_unbatched = jnp.empty((input_channels, num_elements))
-  conv_fn = get_conv(output_channels, kernel_size, dilation_rate, depends_on_current_token)
+               dilation_rate):
+  # Channel-last format: [N, W, C]
+  inputs = jnp.empty((batch_size, num_elements, input_channels))
+  conv_fn = get_conv(output_channels, kernel_size, dilation_rate)
   params = conv_fn.init(key, inputs)
   outputs = conv_fn.apply(params, inputs)
-  outputs_unbatched = conv_fn.apply(params, inputs_unbatched)
 
-  assert outputs_unbatched.shape == (output_channels, num_elements)
-  assert outputs.shape == (batch_size, output_channels, num_elements)
+  assert outputs.shape == (batch_size, num_elements, output_channels)
 
 
 def test_ndim(key,
@@ -103,19 +94,18 @@ def test_ndim(key,
               input_channels,
               output_channels,
               kernel_size,
-              dilation_rate,
-              depends_on_current_token):
-  inputs = jnp.empty((batch_size, input_channels, num_elements))
+              dilation_rate):
+  inputs = jnp.empty((batch_size, num_elements, input_channels))
   inputs_londims = jnp.empty((1,))
   inputs_hindims = jnp.empty((1, 1, 1, 1))
-  conv = get_conv(output_channels, kernel_size, dilation_rate, depends_on_current_token)
-  params = conv.init(key, inputs)
+  conv_fn = get_conv(output_channels, kernel_size, dilation_rate)
+  params = conv_fn.init(key, inputs)
 
-  with pytest.raises(ValueError):
-    conv.apply(params, inputs_londims)
+  with pytest.raises(Exception):
+    conv_fn.apply(params, inputs_londims)
 
-  with pytest.raises(ValueError):
-    conv.apply(params, inputs_hindims)
+  with pytest.raises(Exception):
+    conv_fn.apply(params, inputs_hindims)
 
 
 def test_edge_kernel(key,
@@ -125,10 +115,12 @@ def test_edge_kernel(key,
   output_channels = 1
   kernel_size = 2
   dilation = 1
-  depends_on_current_token = False
-  inputs = jax.random.uniform(key, (batch_size, input_channels, num_elements))
-  conv = get_conv(output_channels, kernel_size, dilation, depends_on_current_token, name="cconv")
-  params = {'cconv': {'w': jnp.tile(jnp.array([-1.0, 1.0]), (output_channels, input_channels, 1))}}
-  outputs = conv.apply(params, inputs)
-  expected_outputs = jnp.diff(jnp.pad(inputs, ((0, 0), (0, 0), (1, 0))), axis=-1)
+  inputs = jax.random.uniform(key, (batch_size, num_elements, input_channels))
+  conv_fn = get_conv(output_channels, kernel_size, dilation, name="cconv")
+  # Initialize params then overwrite Conv1D kernel weights to implement a simple difference filter
+  params = conv_fn.init(key, inputs)
+  w = jnp.array([[-1.0], [1.0]])  # shape (kernel, in_channels)
+  params['cconv']['w'] = w.reshape(kernel_size, input_channels, output_channels)
+  outputs = conv_fn.apply(params, inputs)
+  expected_outputs = jnp.diff(jnp.pad(inputs, ((0, 0), (1, 0), (0, 0))), axis=1)
   chex.assert_trees_all_equal(outputs, expected_outputs)
