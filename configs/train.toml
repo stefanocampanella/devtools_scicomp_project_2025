@@ -1,0 +1,23 @@
+seed = 42
+epochs = 100
+patience = 20
+n_elements = 784
+generation_batch_size = 16
+
+[train_dataloader]
+batch_size = 32
+shuffle = true
+
+[optimizer]
+learning_rate = 5e-4
+
+[model]
+n_classes = 256
+embed_dim = 64
+res_channels = 128
+skip_channels = 128
+kernel_size = 4
+n_groups = 3
+n_blocks_per_group = 8
+n_postprocess_layers = 2
+eps = 1.0e-5
