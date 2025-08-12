@@ -8,7 +8,8 @@ version = "0.1"
 dependencies = ["chex",
                 "dm-haiku",
                 "flax",
-                "jax",
+                "jax[cuda12] ; sys_platform == 'linux'",
+                "jax ; sys_platform == 'darwin'",
                 "numpy"]
 requires-python = ">=3.11"
 authors = [{name = "Stefano Campanella"}]
@@ -16,12 +17,14 @@ description = 'Assignment for the course "Development Tools for Scientific Compu
 readme = {file = "README.md", content-type = "text/markdown"}
 license = "MIT"
 
+[project.scripts]
+train = "causal_conv_arm.train:main"
+
 [project.optional-dependencies]
 interactive = ["jupyterlab", "ipywidgets", "matplotlib"]
 profile = ["tensorboard_plugin_profile"]
-train = ["torch", "torchvision", "optax", "tensorboard"]
+train = ["torch", "torchvision", "optax", "orbax-checkpoint", "tensorboard", "click", "tqdm", "matplotlib"]
 test = ["pytest", "pytest-cov"]
-
 
 [project.urls]
 Homepage = "https://github.com/stefanocampanella/devtools_scicomp_project_2025"

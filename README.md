@@ -11,7 +11,7 @@ Summer School](https://gemss.ai/2024/) at the Eindhoven TUe.
 
 ## Introduction
 
-An ARM is a likelihood-based deep generative model that is parameterized by causal convolutional neural networks or 
+An ARM is a likelihood-based deep generative model that, for example, could be parameterized by causal convolutional neural networks or 
 causal transformers. Here, we focus on causal convolutions. The approach of parameterizing ARMs with causal 
 convolutions was utilized in multiple papers, e.g.:
 - [Van den Oord, Aaron, et al. "Conditional image generation with pixelcnn decoders." NeurIPS 29 (2016).](https://proceedings.neurips.cc/paper/6527-conditional-image-generation-with-pixelcnn-decoders)
