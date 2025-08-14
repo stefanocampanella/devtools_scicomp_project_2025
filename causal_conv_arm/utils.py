@@ -1,6 +1,6 @@
 import chex
 import numpy as np
-from torch.utils.data import Dataset, DataLoader, random_split
+from torch.utils.data import Dataset
 from torchvision import transforms, datasets
 import jax.numpy as jnp
 import matplotlib.pyplot as plt
